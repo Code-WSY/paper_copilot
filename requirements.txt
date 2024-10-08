@@ -1,0 +1,10 @@
+openai
+python-dotenv
+rich
+numpy
+sqlite3
+tqdm
+pickle
+termcolor
+PyPDF2
+python-docx

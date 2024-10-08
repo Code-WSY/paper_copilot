@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.env
+data/vector_index.faiss
+data/vector_index.faiss.pkl
+.env
+.DS_Store
+*.log
+tests/
+answer/
+chat_history/
+database/
+
