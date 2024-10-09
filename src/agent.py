@@ -61,7 +61,7 @@ class Agent:
             user_input += f"\n\n相关文件标题：{table_name}\n该文件的相关内容：{doc}"
         return user_input
 
-    def get_response_of_vector_database(self, user_input,history=None):
+    def get_response_of_vector_database(self, user_input):
         # 1. 根据用户输入，在向量数据库中检索相关文档
         # 2. 将检索到的文档内容返回给LLM，LLM根据文档内容和用户问题，生成回答
         # 3. 返回回答
@@ -81,7 +81,8 @@ class Agent:
         #print(colored(f"修饰后的用户输入: {user_input}", "blue"))
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=self.history
+            messages=self.history,
+            response_format={ "type": "json_object" }
         )
         self.last_response = response.choices[0].message.content
         self.history.append({"role": "assistant", "content": self.last_response})
