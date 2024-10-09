@@ -29,7 +29,8 @@ def start():
     #初始化agent
     agent = Agent(prompt_path="src/prompt/文献分析助手.md",model="o1-mini")
     while True:
-        command = prompt("\nYou:\n" + " ", completer=completer).strip()
+        print(colored("You:\n", "cyan"))
+        command = prompt(completer=completer).strip()
         if command.startswith("/quit"):
             break
         elif command.startswith("/last_md"):

@@ -69,6 +69,7 @@ class Agent:
         #提取关联度>relation_threshold 的文档
         related_docs = [(cos,table_name,doc) for cos,table_name,doc in related_docs if cos > self.relation_threshold]
         print(colored(f"检索到{len(related_docs)}个相关部分", "green"))
+        print(colored("-"*50, "green"))
         # 修饰问题
         user_input = self.decorate_user_input(user_input, related_docs)
         if len(self.history)==0:
@@ -98,12 +99,16 @@ class Agent:
 
     def chat_with_vector_database(self,user_input):
         self.get_response_of_vector_database(user_input)
-        rprint("Assistant: \n", Markdown(self.last_response))
+        print(colored("-"*50, "green"))
+        print(colored("Assistant: \n", "green"))
+        rprint(Markdown(self.last_response))
         print(colored("-"*50, "green"))
 
     def chat_with_ai(self,user_input):
         self.get_response_of_ai(user_input)
-        rprint("Assistant: \n", Markdown(self.last_response))
+        print(colored("-"*50, "green"))
+        print(colored("Assistant: \n", "green"))
+        rprint(Markdown(self.last_response))
         print(colored("-"*50, "green"))
 
     def save_last_response(self):
