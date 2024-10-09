@@ -63,6 +63,13 @@ class VectorIndexer:
         #ALL表示所有表
         if user_input.strip().lower() == 'all':
             self.tables = tables
+        #如果直接回车
+        elif user_input.strip() == '':
+            self.tables = []
+            print("-"*50)
+            print(colored("未选择任何文献", "red"))
+            print("-"*50)
+            return
         else:
             for part in user_input.split(';'):
                 if ':' in part:
@@ -187,7 +194,6 @@ class VectorIndexer:
             ','.join(['?']*len(self.tables))
             ), self.tables)
         table_names = cursor.fetchall()
-
         # 遍历每个表，进行相似度搜索
         for table_name in table_names:
             table_name = table_name[0]
@@ -202,7 +208,11 @@ class VectorIndexer:
         conn.close()
         # 根据相似度排序并返回前top_n个结果
         output.sort(key=lambda x: x[0], reverse=True)
-        return output[:self.top_n]
+        
+        if len(output) < self.top_n:
+            return output
+        else:
+            return output[:self.top_n]
 
     def check_table_exist(self, table_name):
         # 检查表是否存在

@@ -18,7 +18,7 @@ def start():
         "/clear": "清除聊天记录",
         "/load": "加载聊天记录",
         "/last_md": "保存上一次的回答为markdown文件",
-        "/reselect": "重新选择文献"
+        "/select": "重新选择文献"
 
     }
     command_list = list(commands.keys())
@@ -59,9 +59,9 @@ def start():
         elif command.startswith("/delete"):
             #删除文献
             agent.delete_table()
-        elif command.startswith("/reselect"):
-            #重新选择文献
-            agent.reselect()
+        elif command.startswith("/select"):
+            #选择文献
+            agent.select_tables()
         else:
             #不加载知识库，直接问答
             agent.chat_with_ai(command)

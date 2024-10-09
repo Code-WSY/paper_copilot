@@ -127,7 +127,7 @@ class Agent:
     def delete_table(self):
         self.vector_indexer.delete_table()
 
-    def reselect(self):
+    def select_tables(self):
         self.vector_indexer.select_tables()
 
 if __name__ == "__main__":
