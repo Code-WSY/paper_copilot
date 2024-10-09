@@ -17,12 +17,12 @@ import pickle
 load_dotenv()
 
 class VectorIndexer:
-    def __init__(self,database_path=None,batch_size=2000):
+    def __init__(self,database_path=None):
         self.database_path = database_path or os.getenv("DATABASE_PATH")
         self.client = OpenAI(api_key=os.getenv("API_KEY"),base_url=os.getenv("BASE_URL"))
         self.batch_size = int(os.getenv("BATCH_SIZE"))
         self.top_n = int(os.getenv("TOP_N"))
-        self.tables = 'ALL'
+        self.tables = []
         #如果数据库路径不存在，则创建
         if not os.path.exists(self.database_path):
             print(colored("数据库路径不存在，是否创建？(y/n)", "red"))
@@ -93,7 +93,7 @@ class VectorIndexer:
         for idx,table in enumerate(self.tables, start=1):
             print(colored(f"{idx}. {table}", "green"))
         print("-"*50)
-        
+
         conn.close()      
 
     def cal_cos(self, input_vec, embedding):
