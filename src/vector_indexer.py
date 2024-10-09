@@ -281,12 +281,10 @@ class VectorIndexer:
 
     def load_index(self):
         # 用户选择路径
-        from tkinter.filedialog import askopenfilename
-        # 选择文档路径,可以是文件夹，也可以是pdf，txt，md，docx文件
-        from tkinter.filedialog import askdirectory
+        from tkinter.filedialog import askopenfilename, askdirectory
         from tkinter import messagebox
         selection_type = messagebox.askquestion("选择类型", "您要选择文件/文件夹？(是/否)", icon='question')
-        if selection_type == 'yes': 
+        if selection_type == 'yes' or selection_type == 'y':  
             documents_path = askopenfilename(title="选择文件",
                                          filetypes=[("PDF文件", "*.pdf"), 
                                                     ("文本文件", "*.txt"), 
