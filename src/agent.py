@@ -82,7 +82,6 @@ class Agent:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=self.history,
-            response_format={ "type": "json_object" }
         )
         self.last_response = response.choices[0].message.content
         self.history.append({"role": "assistant", "content": self.last_response})
