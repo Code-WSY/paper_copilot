@@ -11,14 +11,14 @@ import time
 load_dotenv()
 
 class Agent:
-    def __init__(self,prompt_path="src/prompt/文献分析助手.md",model="o1-mini",top_n=8,relation_threshold=0.1):
+    def __init__(self,prompt_path="src/prompt/文献分析助手.md",model="o1-mini"):
         self.client = OpenAI(api_key=os.getenv("API_KEY"),base_url=os.getenv("BASE_URL"))
         self.prompt = self.load_prompt(prompt_path)
-        self.model = model
-        self.top_n=top_n
-        self.relation_threshold=relation_threshold
+        self.model = os.getenv("MODEL")
+        self.top_n=int(os.getenv("TOP_N"))
+        self.relation_threshold=float(os.getenv("RELATION_THRESHOLD"))
         self.history = []
-        self.vector_indexer = VectorIndexer(top_n=self.top_n)
+        self.vector_indexer = VectorIndexer()
         self.vector_indexer.select_tables()
         self.last_response = None
 
@@ -66,7 +66,7 @@ class Agent:
         # 2. 将检索到的文档内容返回给LLM，LLM根据文档内容和用户问题，生成回答
         # 3. 返回回答
         related_docs = self.vector_indexer.search_index(user_input)
-        #提取关联度>0.5的文档
+        #提取关联度>relation_threshold 的文档
         related_docs = [(cos,table_name,doc) for cos,table_name,doc in related_docs if cos > self.relation_threshold]
         print(colored(f"检索到{len(related_docs)}个相关部分", "green"))
         # 修饰问题
@@ -117,8 +117,14 @@ class Agent:
         with open(save_path, "w", encoding="utf-8") as file:
             file.write(self.last_response)
         print(colored(f"已保存上一次的回答到：{save_path}", "green"))
-        print(colored("-"*50, "green"))
-        
+        print(colored("-"*50, "green")) 
+
+    def delete_table(self):
+        self.vector_indexer.delete_table()
+
+    def reselect(self):
+        self.vector_indexer.select_tables()
+
 if __name__ == "__main__":
-    agent = Agent(prompt_path="src/prompt/文献分析助手.md",model="o1-mini",top_n=8,relation_threshold=0.1)
+    agent = Agent(prompt_path="src/prompt/文献分析助手.md",model="o1-mini")
     agent.chat_with_vector_database()

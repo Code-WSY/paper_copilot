@@ -17,11 +17,11 @@ import pickle
 load_dotenv()
 
 class VectorIndexer:
-    def __init__(self,database_path=None,batch_size=2000,top_n=5):
+    def __init__(self,database_path=None,batch_size=2000):
         self.database_path = database_path or os.getenv("DATABASE_PATH")
         self.client = OpenAI(api_key=os.getenv("API_KEY"),base_url=os.getenv("BASE_URL"))
-        self.batch_size = batch_size
-        self.top_n = top_n
+        self.batch_size = int(os.getenv("BATCH_SIZE"))
+        self.top_n = int(os.getenv("TOP_N"))
         self.tables = 'ALL'
         #如果数据库路径不存在，则创建
         if not os.path.exists(self.database_path):
@@ -58,10 +58,10 @@ class VectorIndexer:
             print(colored(f"{idx}. {table}", "blue",attrs=['bold']))
         print("-"*50)
         # 让用户选择序号，分号;隔开，或者:表示连续 如1:5;7;9表示1,2,3,4,5,7,9
-        user_input = input(colored("请选择文献的编号（例如1:5;7;9）: ", "cyan"))
+        user_input = input(colored("请选择文献的编号（例如1:5;7;9;all）: ", "cyan"))
         selected_indices = set()
         #ALL表示所有表
-        if user_input == 'ALL':
+        if user_input.strip().lower() == 'all':
             self.tables = tables
         else:
             for part in user_input.split(';'):
@@ -74,6 +74,11 @@ class VectorIndexer:
             selected_indices = {i for i in selected_indices if 1 <= i <= len(tables)}
             selected_tables = [tables[i-1] for i in sorted(selected_indices)]
             self.tables = selected_tables
+        print("-"*50)
+        print(colored("已选择文献:", "blue"))
+        for idx,table in enumerate(self.tables, start=1):
+            print(colored(f"{idx}. {table}", "green"))
+        print("-"*50)
         conn.close()      
 
     def cal_cos(self, input_vec, embedding):
@@ -261,13 +266,54 @@ class VectorIndexer:
         self.save_index(text_vec)
 
 
-    def delete_table(self,table_name):
-        conn = sqlite3.connect(self.database_path) #创建连接
-        cursor = conn.cursor() #创建游标
-        cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
-        conn.commit()
-        conn.close()
-        print(colored(f"表{table_name}删除成功", "green"))
+    def delete_table(self):
+        conn = sqlite3.connect(self.database_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name!='sqlite_sequence'")
+        tables = [row[0] for row in cursor.fetchall()]
+        if not tables:
+            print(colored("没有找到任何文献。", "yellow"))
+            return
+        # 显示表名列表
+        print("-"*50)
+        print(colored("数据库中已有的文献:", "blue"))
+        print("-"*50)
+        for idx, table in enumerate(tables, start=1):
+            print(colored(f"{idx}. {table}", "blue",attrs=['bold']))
+        print("-"*50)
+        # 让用户选择序号，分号;隔开，或者:表示连续 如1:5;7;9表示1,2,3,4,5,7,9
+        user_input = input(colored("请选择你要删除的文献的编号（例如1:5;7;9;all）: ", "cyan"))
+        selected_indices = set()
+        #ALL表示所有表
+        if user_input.strip().lower() == 'all':
+            selected_indices = set(range(1, len(tables)+1))
+        else:
+            for part in user_input.split(';'):
+                if ':' in part:
+                    start, end = part.split(':')
+                    selected_indices.update(range(int(start), int(end)+1))
+                else:
+                    selected_indices.add(int(part))
+            # 过滤无效的索引    
+            selected_indices = {i for i in selected_indices if 1 <= i <= len(tables)}
+            selected_tables = [tables[i-1] for i in sorted(selected_indices)]
+        print("-"*50)
+        print(colored("已选择要删除的文献:", "blue"))
+        for idx,table in enumerate(selected_tables, start=1):
+            print(colored(f"{idx}. {table}", "green"))
+        print("-"*50)
+        #询问是否删除
+        print(colored("是否删除选中的文献？(yes/no)", "red"))
+        choice = input().strip()
+        if choice == 'yes':
+            # 删除选中的表
+            for table_name in selected_tables:
+                cursor.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+                print(colored(f"已删除文献{table_name}", "green"))
+            conn.commit()
+            conn.close()
+        else:
+            print(colored("已取消删除", "red"))
 
     def show_table_info(self):
         data_path = os.getenv("DATABASE_PATH")
