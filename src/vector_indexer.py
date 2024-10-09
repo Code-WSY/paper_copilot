@@ -25,6 +25,7 @@ class VectorIndexer:
         self.database_path = database_path or os.getenv("DATABASE_PATH")
         self.client = OpenAI(api_key=os.getenv("API_KEY"),base_url=os.getenv("BASE_URL"))
         self.batch_size = int(os.getenv("BATCH_SIZE"))
+        self.repeat_size = int(os.getenv("REPEAT_SIZE"))
         self.top_n = int(os.getenv("TOP_N"))
         self.tables = []
         self.parallel_num = int(os.getenv("PARALLEL_NUM"))
@@ -182,7 +183,8 @@ class VectorIndexer:
     def text_to_vec(self,text,file_path):
         text_vec = []
         print(colored(f"正在为文件：{os.path.basename(file_path)}生成向量", "green"))
-        for i in tqdm(range(0, len(text), self.batch_size), desc=colored(f"进度", "green")):
+        # self.repeat_size 为每块之间重合的部分
+        for i in tqdm(range(0, len(text), self.batch_size-self.repeat_size), desc=colored(f"进度", "green")):
             batch = text[i:i+self.batch_size]
             embedding = self.encode(batch,sleep=1)
             text_vec.append({"content": batch, "embedding": embedding})
