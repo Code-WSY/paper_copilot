@@ -42,7 +42,7 @@ class Agent:
             return
         print(colored(f"聊天记录：", "blue"))
         for i, file in enumerate(os.listdir(chat_history_dir), 1):
-            print(f"{i}. {file}")
+            print(colored(f"{i}. {file}", "blue"))
         #让用户选择序号
         choice = int(input("请输入序号: "))
         #加载用户选择的聊天记录
@@ -122,6 +122,7 @@ class Agent:
         with open(save_path, "w", encoding="utf-8") as file:
             file.write(self.last_response)
         print(colored(f"已保存上一次的回答到：{save_path}", "green"))
+
         print(colored("-"*50, "green")) 
 
     def delete_table(self):

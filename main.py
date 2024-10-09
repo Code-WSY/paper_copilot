@@ -41,7 +41,7 @@ def start():
             #初始化向量数据库
             vector_indexer = VectorIndexer(database_path=database_path)
             vector_indexer.load_index()
-            vector_indexer.show_table_info()
+            #vector_indexer.show_table_info()
         elif command.startswith("/save"):
             agent.save_chat_history()
         elif command.startswith("/clear"):

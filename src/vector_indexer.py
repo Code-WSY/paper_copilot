@@ -13,7 +13,11 @@ import sqlite3
 from tqdm import tqdm
 #pickle
 import pickle
-
+#log
+import logging
+import time
+#日志信息
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s') #INFO级别，输出所有信息
 load_dotenv()
 
 class VectorIndexer:
@@ -23,21 +27,23 @@ class VectorIndexer:
         self.batch_size = int(os.getenv("BATCH_SIZE"))
         self.top_n = int(os.getenv("TOP_N"))
         self.tables = []
+        self.parallel_num = int(os.getenv("PARALLEL_NUM"))
         #如果数据库路径不存在，则创建
         if not os.path.exists(self.database_path):
             print(colored("数据库路径不存在，是否创建？(y/n)", "red"))
             choice = input().strip()
-            if choice == 'y':
+            if choice.lower() == 'y':
                 os.makedirs(os.path.dirname(self.database_path))
-                print(colored("数据库路径创建成功", "green"))
+                #logging.info(colored("数据库路径创建成功", "green"))
                 print(colored("正在创建数据库", "green"))
                 self.load_index()
             else:
-                print(colored("数据库路径不存在，程序退出", "red"))
+                print(colored("取消创建数据库，程序退出", "red"))
                 exit(0)
 
-    def encode(self, text):
+    def encode(self, text,sleep=0):
         response = self.client.embeddings.create(input=text, model="text-embedding-3-large")
+        time.sleep(sleep)
         return np.array(response.data[0].embedding)
     
     def select_tables(self):
@@ -55,7 +61,7 @@ class VectorIndexer:
         print(colored("数据库中已有的文献:", "blue"))
         print("-"*50)
         for idx, table in enumerate(tables, start=1):
-            print(colored(f"{idx}. {table}", "blue",attrs=['bold']))
+            print(colored(f"{idx}. {table}", "blue"))
         print("-"*50)
         # 让用户选择序号，分号;隔开，或者:表示连续 如1:5;7;9表示1,2,3,4,5,7,9
         user_input = input(colored("请选择文献的编号（例如1:5;7;9;all）: ", "cyan"))
@@ -67,7 +73,7 @@ class VectorIndexer:
         elif user_input.strip() == '':
             self.tables = []
             print("-"*50)
-            print(colored("未选择任何文献", "red"))
+            print(colored("未选择任何文献", "yellow"))
             print("-"*50)
             return
         else:
@@ -84,14 +90,14 @@ class VectorIndexer:
 
             if len(self.tables) == 0:
                 print("-"*50)
-                print(colored("未选择任何文献", "red"))
+                print(colored("未选择任何文献", "yellow"))
                 print("-"*50)
                 return
         
         print("-"*50)
         print(colored("已选择文献:", "blue"))
         for idx,table in enumerate(self.tables, start=1):
-            print(colored(f"{idx}. {table}", "green"))
+            print(colored(f"{idx}. {table}", "blue"))
         print("-"*50)
 
         conn.close()      
@@ -115,42 +121,52 @@ class VectorIndexer:
             if denominator == 0:
                 return 0.0
             return numerator / denominator
-        except ValueError as e:
-            rich_print(colored(f"转换向量时出错: {e}", "red"))
+        except Exception as e:
+            print(colored(f"转换向量时出错: {e}", "red"))
             return 0.0
 
-    def dir_to_text_vec(self,dir_path):
-        # 遍历文件夹，将所有文档内容转换为向量，并保存到文件
+    def dir_to_text_vec(self, dir_path):
+        from concurrent.futures import ThreadPoolExecutor, as_completed
         text_vec_list = []
-        for root, dirs, files in os.walk(dir_path):
-            for file in files:
-                print(colored("正在处理文件: " + file, "green"))
-                file_path = os.path.join(root, file)
-                text_vec=self.file_to_text_vec(file_path)
-                if text_vec is None:
+        with ThreadPoolExecutor(max_workers=self.parallel_num) as executor:
+            # 收集所有文件路径
+            futures = {executor.submit(self.file_to_text_vec, os.path.join(root, file)): file 
+                       for root, dirs, files in os.walk(dir_path) for file in files}
+            # 遍历所有文件
+            for future in tqdm(as_completed(futures), desc=colored("总进度", "green")):
+                # 获取文件名
+                file = futures[future]
+                try:
+                    # 获取文件向量
+                    text_vec = future.result()
+                    # 如果文件向量不为空
+                    if text_vec is not None:
+                        # 只取文件名并替换特殊字符
+                        file_name = os.path.basename(file).replace('.', '_').replace(':', '_').replace(' ', '_')
+                        text_vec_list.append((file_name, text_vec))
+                except Exception as e:
+                    print(colored(f"处理文件{file}时出错: {e}", "red"))
                     continue
-                #filepath只取文件名
-                file_path = os.path.basename(file_path)
-                table_name=file_path.replace('.','_').replace(':','_').replace(' ','_')
-                text_vec_list.append((table_name, text_vec))
-
+        # 如果文件向量列表为空
         if len(text_vec_list) == 0:
             print(colored("没有有效的文件", "red"))
             return None
-        
+
         return text_vec_list
     
     def file_to_text_vec(self,file_path):
         #检查是否存在
         table_name=os.path.basename(file_path).replace('.','_').replace(':','_').replace(' ','_')
         if self.check_table_exist(table_name):
-            print(colored(f"文件{file_path}已存在", "yellow"))
+            print(colored(f"文件 {file_path} 已存在", "dark_grey"))
             return None
         # 将文件内容转换为向量，只读取pdf，txt，md，docx文件
         enable_file_types = ['pdf', 'txt', 'md', 'docx']
         if not any(file_path.endswith(ext) for ext in enable_file_types):
-            print(colored(f"文件{file_path}不是有效的文件类型", "red"))
+            print(colored(f"文件 {file_path} 不是有效的文件类型", "dark_grey")) 
             return None
+        # 将文件内容转换为向量
+        #print(colored(f"正在处理文件: {file_path}", "green"))
         if file_path.endswith('.pdf'):
             text=extract_text_from_pdf(file_path)
         elif file_path.endswith('.txt'):
@@ -160,14 +176,15 @@ class VectorIndexer:
         elif file_path.endswith('.docx'):
             text=extract_text_from_docx(file_path)
 
-        text_vec=self.text_to_vec(text)
+        text_vec=self.text_to_vec(text,file_path)
         return text_vec
     
-    def text_to_vec(self,text):
+    def text_to_vec(self,text,file_path):
         text_vec = []
-        for i in tqdm(range(0, len(text), self.batch_size), desc="正在生成向量"):
+        print(colored(f"正在为文件：{os.path.basename(file_path)}生成向量", "green"))
+        for i in tqdm(range(0, len(text), self.batch_size), desc=colored(f"进度", "green")):
             batch = text[i:i+self.batch_size]
-            embedding = self.encode(batch)
+            embedding = self.encode(batch,sleep=1)
             text_vec.append({"content": batch, "embedding": embedding})
         return text_vec
     
@@ -183,12 +200,11 @@ class VectorIndexer:
             print(colored("正在处理文件夹: " + documents_path, "green"))
             text_vec=self.dir_to_text_vec(documents_path)
         else:
-
             print(colored("正在处理文件: " + documents_path, "green"))
             text_vec=self.file_to_text_vec(documents_path)
             if text_vec is None:
                 return None
-            text_vec=[(os.path.basename(documents_path).replace('.','_').replace(':','_').replace(' ','_'),text_vec)]
+            text_vec=[(os.path.basename(documents_path).strip().replace('.','_').replace(':','_').replace(' ','_'),text_vec)]
         return text_vec
 
     def search_index(self, query):
@@ -235,8 +251,8 @@ class VectorIndexer:
         if text_vec is None:
             print(colored("没有有效的文件", "red"))
             return
-        print("正在保存向量索引到文件", self.database_path)
-
+        
+        print(colored(f"正在保存向量索引到文件{self.database_path}", "green"))
         conn = sqlite3.connect(self.database_path)  # 创建连接
         cursor = conn.cursor()  # 创建游标
 
@@ -259,11 +275,10 @@ class VectorIndexer:
                     INSERT INTO {table_name} (content, embedding)
                     VALUES (?, ?)
                 ''', (vec["content"], embedding_blob))
-
+                print(colored(f"文件{table_name}保存成功", "green"))
         conn.commit()
         conn.close()
-        print(colored(f"文件{table_name}保存成功", "green"))
-    
+
     def load_index(self):
         # 用户选择路径
         from tkinter.filedialog import askopenfilename
@@ -290,14 +305,14 @@ class VectorIndexer:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name!='sqlite_sequence'")
         tables = [row[0] for row in cursor.fetchall()]
         if not tables:
-            print(colored("没有找到任何文献。", "yellow"))
+            print(colored("没有找到任何文献。", "yellow"))  
             return
         # 显示表名列表
         print("-"*50)
         print(colored("数据库中已有的文献:", "blue"))
         print("-"*50)
         for idx, table in enumerate(tables, start=1):
-            print(colored(f"{idx}. {table}", "blue",attrs=['bold']))
+            print(colored(f"{idx}. {table}", "blue"))
         print("-"*50)
         # 让用户选择序号，分号;隔开，或者:表示连续 如1:5;7;9表示1,2,3,4,5,7,9
         user_input = input(colored("请选择你要删除的文献的编号（例如1:5;7;9;all）: ", "cyan"))
@@ -321,9 +336,9 @@ class VectorIndexer:
             print(colored(f"{idx}. {table}", "green"))
         print("-"*50)
         #询问是否删除
-        print(colored("是否删除选中的文献？(yes/no)", "red"))
+        print(colored("是否删除选中的文献？(y/n)", "red"))
         choice = input().strip()
-        if choice == 'yes':
+        if choice == 'y':
             # 删除选中的表
             for table_name in selected_tables:
                 cursor.execute(f'DROP TABLE IF EXISTS "{table_name}"')
@@ -334,20 +349,19 @@ class VectorIndexer:
             print(colored("已取消删除", "red"))
 
     def show_table_info(self):
-        data_path = os.getenv("DATABASE_PATH")
-        conn = sqlite3.connect(data_path) #创建连接
+        conn = sqlite3.connect(self.database_path) #创建连接
         cursor = conn.cursor() #创建游标
         cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table'")
         table_names = cursor.fetchall() #fetchall返回的是一个元组列表，每个元组包含一个表名
         conn.close()
-        print(table_names)
+        print(colored(table_names, "blue"))
         for table_name in table_names:
             if table_name[0] == "sqlite_sequence":
                 continue
             table_name = table_name[0]
-            print("表名：",table_name)
+            print(colored(f"表名：{table_name}", "blue"))
             #检查表的行数
-            conn = sqlite3.connect(data_path) #创建连接
+            conn = sqlite3.connect(self.database_path) #创建连接
             cursor = conn.cursor() #创建游标
             cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
             row_count = cursor.fetchone()[0]
@@ -361,7 +375,6 @@ class VectorIndexer:
             row = cursor.fetchone()
             print("第一行的第一列：",row[0])
             print("第一行的第二列：",row[1])
-            #print("第一行的第三列：",row[2])
             conn.close()
 
 if __name__ == "__main__":
