@@ -29,6 +29,10 @@ def start():
     #初始化agent
     agent = Agent(prompt_path="src/prompt/文献分析助手.md")
     while True:
+        #限制聊天记录长度
+        if len(agent.history) > 20:
+            #只保留最后20条记录
+            agent.history = agent.history[-20:]
         print(colored("You:\n", "cyan"))
         command = prompt(completer=completer).strip()
         if command.startswith("/quit"):
