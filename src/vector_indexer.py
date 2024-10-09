@@ -81,11 +81,19 @@ class VectorIndexer:
             selected_indices = {i for i in selected_indices if 1 <= i <= len(tables)}
             selected_tables = [tables[i-1] for i in sorted(selected_indices)]
             self.tables = selected_tables
+
+            if len(self.tables) == 0:
+                print("-"*50)
+                print(colored("未选择任何文献", "red"))
+                print("-"*50)
+                return
+        
         print("-"*50)
         print(colored("已选择文献:", "blue"))
         for idx,table in enumerate(self.tables, start=1):
             print(colored(f"{idx}. {table}", "green"))
         print("-"*50)
+        
         conn.close()      
 
     def cal_cos(self, input_vec, embedding):

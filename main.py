@@ -12,13 +12,13 @@ def start():
         "/chat": "基于知识库问答（后接问题）",
         "/create": "创建知识库",
         "/delete": "删除数据库中的文献",
+        "/select": "重新选择文献",
         "/help": "显示帮助信息",
         "/quit": "退出程序",
         "/save": "保存聊天记录",
         "/clear": "清除聊天记录",
         "/load": "加载聊天记录",
         "/last_md": "保存上一次的回答为markdown文件",
-        "/select": "重新选择文献"
 
     }
     command_list = list(commands.keys())
@@ -49,7 +49,6 @@ def start():
         elif command.startswith("/load"):
             agent.load_chat_history()
         elif command.startswith("/chat"):
-            #这是基于向量数据库的问答
             agent.chat_with_vector_database(command[6:])
         elif command.startswith("/help"):
             print(colored("命令:", "cyan"))
