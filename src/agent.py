@@ -83,7 +83,8 @@ class Agent:
             model=self.model,
             messages=self.history,
         )
-        self.last_response = response.choices[0].message.content
+        #mac端读取response.choices[0].message.content 会报错，需要转码
+        self.last_response = response.choices[0].message.content.encode('utf-8').decode('unicode_escape')
         self.history.append({"role": "assistant", "content": self.last_response})
         return self.last_response
 
@@ -93,7 +94,8 @@ class Agent:
             model=self.model,
             messages=self.history
         )
-        self.last_response = response.choices[0].message.content
+        #mac端读取response.choices[0].message.content 会报错，需要转码
+        self.last_response = response.choices[0].message.content.encode('utf-8').decode('unicode_escape')
         self.history.append({"role": "assistant", "content": self.last_response})
         return self.last_response
 
