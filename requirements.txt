@@ -8,4 +8,3 @@ termcolor
 PyPDF2
 python-docx
 # End of Selection
-```

@@ -33,7 +33,7 @@ class VectorIndexer:
             print(colored("数据库路径不存在，是否创建？(y/n)", "red"))
             choice = input().strip()
             if choice.lower() == 'y':
-                os.makedirs(os.path.dirname(self.database_path))
+                os.makedirs(os.path.dirname(self.database_path),exist_ok=True)
                 #logging.info(colored("数据库路径创建成功", "green"))
                 print(colored("正在创建数据库", "green"))
                 self.load_index()
