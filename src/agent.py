@@ -11,7 +11,7 @@ import time
 load_dotenv()
 
 class Agent:
-    def __init__(self,prompt_path="src/prompt/文献分析助手.md",model="o1-mini"):
+    def __init__(self,prompt_path="src/prompt/文献分析助手.md"):
         self.client = OpenAI(api_key=os.getenv("API_KEY"),base_url=os.getenv("BASE_URL"))
         self.prompt = self.load_prompt(prompt_path)
         self.model = os.getenv("MODEL")
