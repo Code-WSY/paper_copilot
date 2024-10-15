@@ -28,6 +28,7 @@ class VectorIndexer:
         self.repeat_size = int(os.getenv("REPEAT_SIZE"))
         self.top_n = int(os.getenv("TOP_N"))
         self.tables = []
+        self.vec_model = os.getenv("VEC_MODEL")
         self.parallel_num = int(os.getenv("PARALLEL_NUM"))
         #如果数据库路径不存在，则创建
         if not os.path.exists(self.database_path):
@@ -43,7 +44,7 @@ class VectorIndexer:
                 exit(0)
 
     def encode(self, text,sleep=0):
-        response = self.client.embeddings.create(input=text, model="text-embedding-3-large")
+        response = self.client.embeddings.create(input=text, model=self.vec_model)
         time.sleep(sleep)
         return np.array(response.data[0].embedding)
     

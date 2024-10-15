@@ -21,13 +21,14 @@ class Agent:
         self.vector_indexer = VectorIndexer()
         self.vector_indexer.select_tables()
         self.last_response = None
-
+        self.answer_dir = os.getenv("ANSWER_DIR")
+        self.chat_history_dir = os.getenv("CHAT_HISTORY_DIR")
     def load_prompt(self, prompt_path):
         with open(prompt_path, "r", encoding="utf-8") as file:
             return file.read()
         
     def save_chat_history(self):
-        chat_history_dir = "chat_history"
+        chat_history_dir = self.chat_history_dir
         if not os.path.exists(chat_history_dir):
             os.makedirs(chat_history_dir)
         with open(f"{chat_history_dir}/chat_history_{time.strftime('%Y-%m-%d_%H-%M-%S')}.json", "w", encoding="utf-8") as file:
@@ -36,7 +37,7 @@ class Agent:
         print(colored(f"已保存聊天记录:{file}", "green"))
 
     def load_chat_history(self):
-        chat_history_dir = "chat_history"
+        chat_history_dir = self.chat_history_dir
         if not os.path.exists(chat_history_dir):
             print(colored("没有聊天记录", "red"))
             return
@@ -112,13 +113,12 @@ class Agent:
         print(colored("-"*50, "green"))
 
     def save_last_response(self):
-        answer_dir = "answer"
-        save_path = f"{answer_dir}/answer_{time.strftime('%Y-%m-%d_%H-%M-%S')}.md"
+        save_path = f"{self.answer_dir}/answer_{time.strftime('%Y-%m-%d_%H-%M-%S')}.md"
         if self.last_response is None:
             print(colored("没有上一次的回答", "red"))
             return
-        if not os.path.exists(answer_dir):
-            os.makedirs(answer_dir)
+        if not os.path.exists(self.answer_dir):
+            os.makedirs(self.answer_dir)
         with open(save_path, "w", encoding="utf-8") as file:
             file.write(self.last_response)
         print(colored(f"已保存上一次的回答到：{save_path}", "green"))
